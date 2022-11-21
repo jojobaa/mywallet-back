@@ -4,6 +4,7 @@ import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import joi from 'joi'
 import bcrypt from "bcrypt"
+import { v4 as uuid } from 'uuid';
 
 dotenv.config();
 
@@ -25,20 +26,37 @@ const mongoClient = new MongoClient(process.env.MONGO_URI);
 let db;
 
 await mongoClient.connect().then(() => {
-  db = mongoClient.db("My-wallet");
+    db = mongoClient.db("My-wallet");
 });
 
 server.post("/sign-up", async (req, res) => {
     const user = req.body;
     const hashPassword = bcrypt.hashSync(user.password, 10);
-  
+
     try {
-      await db.collection("users").insertOne({ ...user, password: hashPassword });
-      res.sendStatus(201);
+        await db.collection("users").insertOne({ ...user, password: hashPassword });
+        res.sendStatus(201);
     } catch (err) {
-      console.log(err);
-      res.sendStatus(500);
+        console.log(err);
+        res.sendStatus(500);
     }
-  });
+});
+
+server.post("/sign-in", async (req, res) => {
+    const { email, password } = req.body;
+    const token = uuid();
+
+    const user = await db.collection("users").findOne({ email });
+
+    if (user && bcrypt.compareSync(password, user.password)) {
+        await db.collection("sessions").insertOne({
+            token,
+            userId: user._id,
+        });
+        res.send({ token });
+    } else {
+        res.sendStatus(401);
+    }
+});
 
 server.listen(5000, () => console.log("Server in port 5000"));
