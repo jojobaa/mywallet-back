@@ -102,9 +102,9 @@ server.get("/registrations", async (req, res) => {
 
             for (let i = 0; i < userRegistrations.length; i++) {
                 if (userRegistrations[i].type === "input") {
-                    balance += userRegistrations[i].price
+                    balance += userRegistrations[i].valor
                 } else {
-                    balance -= userRegistrations[i].price
+                    balance -= userRegistrations[i].valor
                 }
             }
             res.send({ userRegistrations, balance });
