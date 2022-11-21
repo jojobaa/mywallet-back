@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import joi from 'joi'
 import bcrypt from "bcrypt"
 import { v4 as uuid } from 'uuid';
+import dayjs from "dayjs";
 
 dotenv.config();
 
@@ -53,10 +54,23 @@ server.post("/sign-in", async (req, res) => {
             token,
             userId: user._id,
         });
-        res.send({ token });
+        delete user.password
+        res.send({ token, ...user});
     } else {
         res.sendStatus(401);
     }
 });
+
+server.post("/registrations", async (req, res) => {
+    const registro = req.body;
+  
+    try {
+      await db.collection("registrations").insertOne({ registro, createdAt: dayjs().format("DD/MM") });
+      res.sendStatus(201);
+    } catch (err) {
+      console.log(err);
+      res.sendStatus(500);
+    }
+  });
 
 server.listen(5000, () => console.log("Server in port 5000"));
