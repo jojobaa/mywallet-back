@@ -55,7 +55,7 @@ server.post("/sign-in", async (req, res) => {
             userId: user._id,
         });
         delete user.password
-        res.send({ token, ...user});
+        res.send({ token, ...user });
     } else {
         res.sendStatus(401);
     }
@@ -63,14 +63,56 @@ server.post("/sign-in", async (req, res) => {
 
 server.post("/registrations", async (req, res) => {
     const registro = req.body;
-  
+
     try {
-      await db.collection("registrations").insertOne({ registro, createdAt: dayjs().format("DD/MM") });
-      res.sendStatus(201);
+        await db
+            .collection("registrations")
+            .insertOne({ ...registro, valor: Number(registro.valor), createdAt: dayjs().format("DD/MM") });
+            res.sendStatus(201)
     } catch (err) {
-      console.log(err);
-      res.sendStatus(500);
+        console.log(err);
+        res.sendStatus(500);
     }
-  });
+});
+
+server.get("/registrations", async (req, res) => {
+    const authorization = req.headers.authorization;
+    const token = authorization?.replace("Bearer ", "");
+
+    if (!token) {
+        res.sendStatus(401);
+        return;
+    }
+
+    try {
+        const sessions = await db.collection("sessions").findOne({ token });
+
+        if (!sessions) {
+            res.sendStatus(401);
+            return;
+        }
+
+        const user = await db.collection("users").findOne({
+            _id: sessions.userId,
+        });
+
+        if (user) {
+            const userRegistrations = await db.collection("registrations").find({ name: user.name }).toArray();
+            let balance = 0
+
+            for (let i = 0; i < userRegistrations.length; i++) {
+                if (userRegistrations[i].type === "input") {
+                    balance += userRegistrations[i].price
+                } else {
+                    balance -= userRegistrations[i].price
+                }
+            }
+            res.send({ userRegistrations, balance });
+        }
+    } catch (error) {
+        console.log(err);
+        res.sendStatus(500);
+    }
+});
 
 server.listen(5000, () => console.log("Server in port 5000"));
